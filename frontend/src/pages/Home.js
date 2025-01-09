@@ -34,13 +34,15 @@ function Home() {
 
             const initialReviews = {};
             result.forEach((product) => {
-                initialReviews[product.id] = { review: '', rating: 1 };
+                initialReviews[product._id] = { review: '', rating: 1 }; // Use _id here
             });
             setReviews(initialReviews);
         } catch (err) {
             handleError(err);
         }
     };
+
+    console.log(localStorage.getItem('token'));
 
     const handleAddReview = async (productId) => {
         const { review, rating } = reviews[productId];
@@ -63,13 +65,27 @@ function Home() {
             });
 
             if (response.ok) {
+                const { updatedProduct } = await response.json();
+
                 handleSuccess('Review added successfully!');
-                fetchProducts(); // Refresh product list with updated reviews
+
+                // Update the local products state
+                setProducts((prevProducts) =>
+                    prevProducts.map((product) =>
+                        product._id === productId ? updatedProduct : product
+                    )
+                );
+
+                // Reset the review and rating input fields
+                setReviews((prev) => ({
+                    ...prev,
+                    [productId]: { review: '', rating: 1 },
+                }));
             } else {
                 throw new Error('Failed to add review.');
             }
         } catch (err) {
-            handleError(err);
+            handleError(err.message);
         } finally {
             setLoading((prev) => ({ ...prev, [productId]: false })); // Reset loading state
         }
@@ -96,7 +112,7 @@ function Home() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginTop: '20px' }}>
                 {products.map((product) => (
                     <div
-                        key={product.id}
+                        key={product._id}
                         style={{
                             border: '1px solid #ddd',
                             padding: '10px',
@@ -133,17 +149,17 @@ function Home() {
                         </div>
                         <textarea
                             placeholder="Write a review..."
-                            value={reviews[product.id]?.review || ''}
+                            value={reviews[product._id]?.review || ''}
                             onChange={(e) =>
-                                handleReviewChange(product.id, 'review', e.target.value)
+                                handleReviewChange(product._id, 'review', e.target.value)
                             }
                             rows="3"
                             style={{ width: '100%', marginBottom: '10px' }}
                         />
                         <select
-                            value={reviews[product.id]?.rating || 1}
+                            value={reviews[product._id]?.rating || 1}
                             onChange={(e) =>
-                                handleReviewChange(product.id, 'rating', Number(e.target.value))
+                                handleReviewChange(product._id, 'rating', Number(e.target.value))
                             }
                             style={{ marginBottom: '10px', width: '100%' }}
                         >
@@ -154,11 +170,11 @@ function Home() {
                             ))}
                         </select>
                         <button
-                            onClick={() => handleAddReview(product.id)}
+                            onClick={() => handleAddReview(product._id)}
                             style={{ width: '100%' }}
-                            disabled={loading[product.id]} // Disable button when loading
+                            disabled={loading[product._id]} // Disable button when loading
                         >
-                            {loading[product.id] ? 'Submitting...' : 'Submit Review'}
+                            {loading[product._id] ? 'Submitting...' : 'Submit Review'}
                         </button>
                     </div>
                 ))}
